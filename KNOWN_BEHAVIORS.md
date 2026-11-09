@@ -137,6 +137,41 @@ window draws is visible to screen capture.
 | No GMS/FCM inside the sandbox | push notifications work only while the clone (or the black daemon) is alive; long-term reliability comes from MIUI-level whitelist/sticky-notification tricks, not FCM |
 | Account-re-registration risk discussed earlier | noted; **Linked Devices** (companion mode) remains the recommended way to link the clone to a WhatsApp account *instead of* SMS re-registration |
 
+## 6b. Companion linking end-to-end (VERIFIED on-device 2026-11-09/10)
+
+Full live sequence that beat SMS registration for good:
+
+1. **Fresh clone** (no sandbox data) launches → EULA → Accept → `RegisterPhone` start intercepted by the
+   engine (`companion-first: rerouting ... -> RegisterAsCompanionActivity` in logcat) → the clone shows
+   WhatsApp's own **"Link as companion device"** QR screen. No phone number is ever entered.
+2. **QR relay** (`qr_relay.py`, workstation-side): adb screencap of the `registration_qr` region
+   (216,718 649x649) shown live on a monitor at 2x; refreshed every 15s. The QR token rotates
+   (~40s) and **times out** to a white "QR code timed out / Reload" card; `qr_autoreload.py`
+   auto-taps Reload (542,1092) the moment the card appears.
+3. **Scanning from another device** (native WhatsApp → Linked devices → Link a device) succeeded:
+   the clone got companion-provisioned for the account.
+4. **First launch after provisioning had TWO traps** (both fixed in `d481024` and re-verified):
+   - A system **VPN connection dialog** ("BlackBox wants to set up a connection…") pops on launch —
+     it is the engine's own network layer; approve once (OK). It can interrupt the startup handoff
+     and mimic a hang.
+   - **`Unable to makeApplication` crash**: WhatsApp's `AbstractAppShellDelegate.onCreate` calls
+     `ActivityManager.clearApplicationUserData()`; in the sandbox the real call is not allowed →
+     the AM proxy returned `null` for a primitive `boolean` → NPE → black screen forever. The engine
+     now answers `clearApplicationUserData` with primitive `true` and clears **nothing** (a clone
+     must never be able to wipe its own sandbox data through that API).
+5. Verified post-fix chain (logcat):
+   `clearApplicationUserData: faking success` → `Main` `onActivityCreated` → `home.ui.HomeActivity`
+   `onActivityCreated` → full chats list renders in the proxy.
+6. **Account marker verified on disk**: `blackbox/data/app/com.whatsapp/companion_registered_0`
+   written at that first `HomeActivity` creation. From then on the reroute NEVER fires again for
+   this clone — even on future launches, wipe-free. Deleting the marker (or wiping the sandbox)
+   re-arms the guide.
+
+Residual unknown (documented honestly): the same-device-scan path (phone camera pointed at the
+monitor showing the clone's own QR) is only proven in the *other-device* scans; WhatsApp accepted
+the companion handshake against the scanned account either way, but a strict same-physical-device
+scan loop was not exercised end-to-end.
+
 ## 7. Re-test checklist (run after major WhatsApp updates)
 
 1. `AutoImport` log shows `up to date` *(or a successful `update X -> Y` B-path re-import)* for `com.whatsapp`.
