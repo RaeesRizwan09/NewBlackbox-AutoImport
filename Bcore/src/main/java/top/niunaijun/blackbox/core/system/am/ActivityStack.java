@@ -19,6 +19,7 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -50,21 +51,55 @@ public class ActivityStack {
     private static final String TAG = "ActivityStack";
 
     /**
-     * Generic config hook + data-dir freshness gate for companion-first guide.
+     * Companion-first guide map (WhatsApp edition): SMS registration entry
+     * activities -> the companion-mode (QR) entry. Consulted directly by the
+     * engine so the redirect also works in the AMS/daemon process, where the
+     * host ClientConfiguration object is NOT attached (only the host prefs
+     * file is readable - both run under the same app uid).
      */
+    private static final Map<String, String> COMPANION_REDIRECT = new HashMap<>();
+
+    static {
+        COMPANION_REDIRECT.put("com.whatsapp.registration.app.phonenumberentry.RegisterPhone",
+                "com.whatsapp.companionmode.registration.ui.RegisterAsCompanionActivity");
+        COMPANION_REDIRECT.put("com.whatsapp.registration.app.verifyphone.VerifyPhoneNumber",
+                "com.whatsapp.companionmode.registration.ui.RegisterAsCompanionActivity");
+    }
+
+    private static final String ACCOUNT_MARKER = "companion_registered_";
+
+    /** Redirect helper: null when toggle off, class not guarded, or clone has an account. */
     private String getCompanionRedirectSafely(ActivityInfo activityInfo, int userId) {
         try {
             if (activityInfo.name == null) return null;
-            String redirect = BlackBoxCore.get().getCompanionRedirect(activityInfo.packageName, activityInfo.name);
+            String redirect = COMPANION_REDIRECT.get(activityInfo.name);
             if (redirect == null) return null;
-            File dataDir = top.niunaijun.blackbox.core.env.BEnvironment.getDataDir(activityInfo.packageName, userId);
-            File prefs = new File(dataDir, "shared_prefs");
-            if (!prefs.exists()) return redirect;               // fresh clone -> guide allowed
-            File[] files = prefs.listFiles();
-            if (files == null || files.length == 0) return redirect;
-            return null;                                        // account data present -> never hijack
+            // user toggle (read live from the host app's prefs file - same uid)
+            boolean guideOn = top.niunaijun.blackbox.BlackBoxCore.getContext()
+                    .getSharedPreferences("AppSharedPreferenceDelegate", Context.MODE_PRIVATE)
+                    .getBoolean("mLinkDeviceGuide", true);
+            if (!guideOn) return null;
+            // never hijack a clone that has ever reached its main screen
+            File marker = new File(top.niunaijun.blackbox.core.env.BEnvironment.getAppDir(activityInfo.packageName),
+                    ACCOUNT_MARKER + userId);
+            if (marker.exists()) return null;
+            return redirect;
         } catch (Throwable t) {
             return null;
+        }
+    }
+
+    /**
+     * Records clones that have ever been on the main screen (i.e. have an
+     * account flow OR completed registration) - those never get rerouted.
+     */
+    private static void markAccountClone(int userId, String packageName) {
+        try {
+            File marker = new File(top.niunaijun.blackbox.core.env.BEnvironment.getAppDir(packageName),
+                    ACCOUNT_MARKER + userId);
+            if (!marker.exists()) marker.createNewFile();
+        } catch (Throwable t) {
+            //
         }
     }
 
@@ -544,6 +579,12 @@ public class ActivityStack {
             record.task = taskRecord;
             taskRecord.addTopActivity(record);
             Log.d(TAG, "onActivityCreated : " + record.component.toString());
+            // account-state marker: whenever the clone reaches its MAIN screen,
+            // never reroute its registration screens afterwards
+            if (record.component != null
+                    && "com.whatsapp.home.ui.HomeActivity".equals(record.component.getClassName())) {
+                markAccountClone(record.userId, "com.whatsapp");
+            }
         }
     }
 
