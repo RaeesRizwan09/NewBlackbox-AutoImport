@@ -216,6 +216,24 @@ public class IActivityManagerProxy extends ClassInvocationStub {
         }
     }
 
+    /**
+     * WhatsApp edition: the app shell delegate calls
+     * ActivityManager.clearApplicationUserData() during makeApplication when
+     * it decides to reset its own state (companion-provisioned clones hit
+     * this). In the sandbox the real call is not allowed (SecurityException
+     * -> catch-all returned null -> NPE unboxing 'boolean' -> fatal in
+     * handleBindApplication). A clone must NEVER be able to wipe its own
+     * sandbox data through this path anyway, so: fake a primitive 'true'.
+     */
+    @ProxyMethod("clearApplicationUserData")
+    public static class ClearApplicationUserData extends MethodHook {
+        @Override
+        protected Object hook(Object who, Method method, Object[] args) throws Throwable {
+            Slog.w(TAG, "clearApplicationUserData: faking success (sandbox protection)");
+            return true;
+        }
+    }
+
     @ProxyMethod("startService")
     public static class StartService extends MethodHook {
         @Override
