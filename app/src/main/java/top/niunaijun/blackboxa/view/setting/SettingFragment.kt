@@ -44,6 +44,13 @@ class SettingFragment : PreferenceFragmentCompat() {
             disableFlagSecurePreference
         }
 
+        invalidHideState {
+            val autoImportPreference: Preference = (findPreference("auto_import_whatsapp")!!)
+            val mAutoImportWhatsApp = AppManager.mBlackBoxLoader.autoImportWhatsApp()
+            autoImportPreference.setDefaultValue(mAutoImportWhatsApp)
+            autoImportPreference
+        }
+
         initSendLogs()
     }
 
@@ -79,6 +86,9 @@ class SettingFragment : PreferenceFragmentCompat() {
                 }
                 "disable_flag_secure" -> {
                     AppManager.mBlackBoxLoader.invalidDisableFlagSecure(tmpHide)
+                }
+                "auto_import_whatsapp" -> {
+                    AppManager.mBlackBoxLoader.invalidAutoImportWhatsApp(tmpHide)
                 }
             }
 

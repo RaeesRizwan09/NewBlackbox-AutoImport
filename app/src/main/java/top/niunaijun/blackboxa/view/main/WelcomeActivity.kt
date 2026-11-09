@@ -17,6 +17,14 @@ class WelcomeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // A: install-if-missing / B: update-if-newer for WhatsApp (clones the
+        // host device's own copy). Runs before the home list is loaded so a
+        // sandboxed copy of WhatsApp is available on first run.
+        try {
+            top.niunaijun.blackboxa.util.AutoImportManager.importAllIfNeeded()
+        } catch (t: Throwable) {
+            android.util.Log.w("AutoImportWelcome", "auto-import failed", t)
+        }
         previewInstalledAppList()
         jump()
     }

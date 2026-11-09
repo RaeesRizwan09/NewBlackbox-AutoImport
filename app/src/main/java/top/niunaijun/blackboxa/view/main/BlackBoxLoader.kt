@@ -25,6 +25,25 @@ class BlackBoxLoader {
 
     private var mDisableFlagSecure by AppSharedPreferenceDelegate(App.getContext(), false)
 
+    private var mAutoImportWhatsApp by AppSharedPreferenceDelegate(App.getContext(), true)
+
+    fun autoImportWhatsApp(): Boolean {
+        return try {
+            mAutoImportWhatsApp
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting autoImportWhatsApp: ${e.message}")
+            true
+        }
+    }
+
+    fun invalidAutoImportWhatsApp(enable: Boolean) {
+        try {
+            this.mAutoImportWhatsApp = enable
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting autoImportWhatsApp: ${e.message}")
+        }
+    }
+
     fun hideRoot(): Boolean {
         return try {
             mHideRoot
