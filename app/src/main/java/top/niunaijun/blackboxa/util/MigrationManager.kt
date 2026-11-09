@@ -157,17 +157,23 @@ object MigrationManager {
     private fun String.nameIf(): String = replace(".", "_")
 
     private fun addDir(root: File, zipRoot: String, zip: ZipOutputStream) {
-        root.walk().forEach { file ->
-            if (file == root) return@forEach
-            val rel = file.absolutePath.removePrefix(root.absolutePath).trimStart('/')
-            if (file.isDirectory && rel.split('/').firstOrNull()?.matches(Regex(EXCLUDE)) == true) {
-                return@walk
-            }
-            if (file.isDirectory) return@forEach
-            val entry = ZipEntry(zipRoot + rel)
-            zip.putNextEntry(entry)
-            file.inputStream().use { it.copyTo(zip) }
-            zip.closeEntry()
-        }
+        val skipTop = Regex(EXCLUDE)
+        root.walk()
+                .filter { file ->
+                    if (file == root) return@filter false
+                    val top = file.absolutePath
+                            .removePrefix(root.absolutePath)
+                            .trimStart('/')
+                            .split('/')
+                            .firstOrNull() ?: return@filter false
+                    !top.matches(skipTop)
+                }
+                .filter { it.isFile }
+                .forEach { file ->
+                    val rel = file.absolutePath.removePrefix(root.absolutePath).trimStart('/')
+                    zip.putNextEntry(ZipEntry(zipRoot + rel))
+                    file.inputStream().use { it.copyTo(zip) }
+                    zip.closeEntry()
+                }
     }
 }
