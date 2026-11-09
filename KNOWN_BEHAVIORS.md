@@ -57,12 +57,42 @@ Open BlackBox → land **inside** the WhatsApp clone, no tap.
 - Debug anchors:
   - `logcat | grep AutoImport` — decision log for import + launch.
   - On screen success: `topResumedActivity` is
-    `top.niunaijun.blackbox/.proxy.ProxyActivity$P0`.
+    `top.niunaijun.blackbox/.proxy.ProxyActivity$P0` (or `$P1` — one stub
+    variant per clone process instance).
   - Clone process: `ps -A -o PID,USER,NAME | grep com.whatsapp` — the clone
     runs as `com.whatsapp` under a *freshly allocated* uid (e.g. `u0_a757`);
     the native app keeps its original uid (`u0_a001…`, 10001 on this device).
+  - **Task identity warning (corrected 2026-11-09):** in `am stack list` /
+    `dumpsys activity activities`, the task labeled
+    `com.whatsapp/com.whatsapp.home.ui.HomeActivity` is the **native**
+    WhatsApp task (it survives host force-stops). The clone's window is
+    the task labeled `top.niunaijun.blackbox/.proxy.ProxyActivity$P0/$P1`.
+    Don't mix them up when diffing stacks.
 - On relaunch (`onNewIntent`) the same 800 ms sequence re-runs, so the
   behavior is identical for every entry point.
+
+## 3b. Single-window mode (Settings → Others → "Single window per app", default ON)
+
+Engine side: `ClientConfiguration.isSingleWindowMode()` →
+`BlackBoxCore.isSingleWindowMode()` → checked at the new-task gate in
+`ActivityStack.startActivityLocked`. When ON, before spawning a *new*
+standalone task (`startActivityInNewTaskLocked`), the engine reuses the
+newest **live** task of the same user+package regardless of affinity
+(`findLatestLiveTaskByPackageLocked`). Verified behavior matrix on device:
+
+| Case | Mode ON | Mode OFF (upstream behavior) |
+|---|---|---|
+| Relaunch, matching affinity task live | reuse (unchanged) | reuse |
+| Clone process killed mid-session, engine alive | reuse — engine's task record self-heals (ActivityRecords not finished on process death), **same in both modes** | reuse |
+| `singleInstance` component wanting a window | **reuse app's live window** | always new window |
+| All activities finished (`needNewTask`) affinity task | **reuse latest live window of the app** | new standalone window |
+| Host engine restart (new task table) | fresh stub task (inherent — engine state is memory-only) | fresh stub task |
+
+On MIUI/Android 13 the finished stub tasks prune out of recents quickly, so
+at rest only one clone tile remains; the mode removes the *live* stacking
+that can accumulate before cleanup in the two edge rows above.
+The pref is read **dynamically** at every launch gate (no restart needed
+after toggling).
 
 ## 4. FLAG_SECURE / view-once capture matrix (verified 2026-11-09)
 
