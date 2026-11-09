@@ -30,6 +30,15 @@ public abstract class ClientConfiguration {
         return false;
     }
 
+    /**
+     * When true, the engine reuses the latest live task of a sandboxed app
+     * (any task affinity) instead of spawning additional standalone windows,
+     * so the clone behaves like a single-window native app.
+     */
+    public boolean isSingleWindowMode() {
+        return false;
+    }
+
     
     public boolean requestInstallPackage(File file, int userId) {
         return false;

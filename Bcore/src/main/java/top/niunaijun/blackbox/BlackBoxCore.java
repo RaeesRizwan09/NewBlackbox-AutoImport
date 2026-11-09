@@ -1265,6 +1265,12 @@ public class BlackBoxCore extends ClientConfiguration {
         return mClientConfiguration.isDisableFlagSecure();
     }
 
+    @Override
+    public boolean isSingleWindowMode() {
+        ClientConfiguration config = mClientConfiguration;
+        return config != null && config.isSingleWindowMode();
+    }
+
 
 
     @Override

@@ -139,6 +139,21 @@ public class ActivityStack {
 
         
         if (taskRecord == null || taskRecord.needNewTask()) {
+            // Single-window mode: before spawning yet another standalone task,
+            // try to reuse the most recent live task of the same user+package
+            // (any affinity). This keeps ONE active window per sandboxed app
+            // like a native launcher launch would, instead of stacking
+            // recents tiles when an app re-launches or its affinity task
+            // expired/DIFFERING (e.g. singleInstance components).
+            if (BlackBoxCore.get().isSingleWindow()) {
+                TaskRecord pkgTask = findLatestLiveTaskByPackageLocked(userId, activityInfo.packageName);
+                if (pkgTask != null) {
+                    taskRecord = pkgTask;
+                }
+            }
+        }
+
+        if (taskRecord == null || taskRecord.needNewTask()) {
             return startActivityInNewTaskLocked(userId, intent, activityInfo, resultTo, launchModeFlags);
         }
         
@@ -328,6 +343,30 @@ public class ActivityStack {
         if (tasks.isEmpty())
             return null;
         return tasks.get(tasks.size() - 1).getTopActivityRecord();
+    }
+
+    /**
+     * Singles-window support: find the newest task that still has live
+     * (not finished) activities for the given user/package, regardless of
+     * task affinity.
+     */
+    private TaskRecord findLatestLiveTaskByPackageLocked(int userId, String packageName) {
+        synchronized (mTasks) {
+            synchronizeTasks();
+        }
+        TaskRecord best = null;
+        for (TaskRecord task : mTasks.values()) {
+            if (task.needNewTask() || task.userId != userId)
+                continue;
+            ActivityRecord top = task.getTopActivityRecord();
+            if (top == null || top.component == null)
+                continue;
+            if (!packageName.equals(top.component.getPackageName()))
+                continue;
+            if (best == null || task.id > best.id)
+                best = task;
+        }
+        return best;
     }
 
     private Intent getStartStubActivityIntentInner(Intent intent, int vpid,

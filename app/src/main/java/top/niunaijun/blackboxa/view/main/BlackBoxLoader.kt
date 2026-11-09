@@ -29,6 +29,25 @@ class BlackBoxLoader {
 
     private var mAutoLaunchWhatsApp by AppSharedPreferenceDelegate(App.getContext(), true)
 
+    private var mSingleWindow by AppSharedPreferenceDelegate(App.getContext(), true)
+
+    fun singleWindow(): Boolean {
+        return try {
+            mSingleWindow
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting singleWindow: ${e.message}")
+            true
+        }
+    }
+
+    fun invalidSingleWindow(enable: Boolean) {
+        try {
+            this.mSingleWindow = enable
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting singleWindow: ${e.message}")
+        }
+    }
+
     fun autoLaunchWhatsApp(): Boolean {
         return try {
             mAutoLaunchWhatsApp
@@ -305,6 +324,15 @@ class BlackBoxLoader {
                                         mDisableFlagSecure
                                     } catch (e: Exception) {
                                         Log.e(TAG, "Error checking disableFlagSecure: ${e.message}")
+                                        false
+                                    }
+                                }
+
+                                override fun isSingleWindowMode(): Boolean {
+                                    return try {
+                                        mSingleWindow
+                                    } catch (e: Exception) {
+                                        Log.e(TAG, "Error checking singleWindow: ${e.message}")
                                         false
                                     }
                                 }

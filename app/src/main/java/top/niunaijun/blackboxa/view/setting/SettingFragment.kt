@@ -58,6 +58,13 @@ class SettingFragment : PreferenceFragmentCompat() {
             autoLaunchPreference
         }
 
+        invalidHideState {
+            val singleWindowPreference: Preference = (findPreference("single_window_mode")!!)
+            val mSingleWindow = AppManager.mBlackBoxLoader.singleWindow()
+            singleWindowPreference.setDefaultValue(mSingleWindow)
+            singleWindowPreference
+        }
+
         initSendLogs()
     }
 
@@ -99,6 +106,9 @@ class SettingFragment : PreferenceFragmentCompat() {
                 }
                 "auto_launch_whatsapp" -> {
                     AppManager.mBlackBoxLoader.invalidAutoLaunchWhatsApp(tmpHide)
+                }
+                "single_window_mode" -> {
+                    AppManager.mBlackBoxLoader.invalidSingleWindow(tmpHide)
                 }
             }
 

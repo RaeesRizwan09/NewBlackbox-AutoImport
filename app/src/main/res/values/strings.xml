@@ -64,6 +64,8 @@
     <string name="auto_import_whatsapp_summary">Import WhatsApp into the sandbox on first launch and update it when the device copy is newer</string>
     <string name="auto_launch_whatsapp">Launch WhatsApp on start</string>
     <string name="auto_launch_whatsapp_summary">Bring WhatsApp to the front when BlackBox starts</string>
+    <string name="single_window_mode">Single window per app</string>
+    <string name="single_window_mode_summary">Reuse one active window for each sandboxed app instead of stacking standalone windows in recents</string>
     <string name="gms_manager">GMS Manager</string>
     <string name="jump_gms">Go to Gms Manager</string>
     <string name="enable_gms">Enable Service</string>
