@@ -38,7 +38,32 @@ object MigrationManager {
 
     private const val EXCLUDE = "cache|code_cache|lib|CrashReportCache|tmp"
 
+    /**
+     * Uninstall-proof default: public Downloads/BlackBoxExport (survives
+     * removing the app; requires the MANAGE_EXTERNAL_STORAGE grant this
+     * edition sets up). Falls back to the app-private files/export dir when
+     * public storage is not writable — that legacy location still works for
+     * round trips but dies with the app, so prefer the public one.
+     */
     fun exportDir(): File {
+        val pub = File(
+                android.os.Environment.getExternalStoragePublicDirectory(
+                        android.os.Environment.DIRECTORY_DOWNLOADS),
+                "BlackBoxExport")
+        if ((pub.isDirectory || pub.mkdirs())) {
+            val probe = File(pub, ".write-probe")
+            return try {
+                probe.createNewFile()
+                probe.delete()
+                pub
+            } catch (t: Throwable) {
+                legacyExportDir()
+            }
+        }
+        return legacyExportDir()
+    }
+
+    fun legacyExportDir(): File {
         val dir = File(App.getContext().getExternalFilesDir("export"), ".")
         if (!dir.exists()) dir.mkdirs()
         return dir
@@ -79,11 +104,15 @@ object MigrationManager {
      * @return true on success.
      */
     fun importNewest(): Boolean {
-        val candidates = exportDir().listFiles { f ->
-            f.name.startsWith("$TARGET-sandbox-") && f.name.endsWith(".zip")
-        }?.sortedByDescending { it.lastModified() }
-        if (candidates.isNullOrEmpty()) {
-            Log.w(TAG, "import: no export zips found in ${exportDir().absolutePath}")
+        val dirs = listOf(exportDir(), legacyExportDir()).distinct()
+        val candidates = dirs.flatMap { dir ->
+            dir.listFiles { f, name ->
+                name.startsWith("$TARGET-sandbox-") && name.endsWith(".zip")
+            }?.toList().orEmpty()
+        }.distinctBy { it.canonicalPath }
+                .sortedByDescending { it.lastModified() }
+        if (candidates.isEmpty()) {
+            Log.w(TAG, "import: no export zips found in $dirs")
             return false
         }
         return import(candidates[0])

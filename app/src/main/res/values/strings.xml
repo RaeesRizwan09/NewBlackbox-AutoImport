@@ -69,9 +69,9 @@
     <string name="single_window_mode">Single window per app</string>
     <string name="single_window_mode_summary">Reuse one active window for each sandboxed app instead of stacking standalone windows in recents</string>
     <string name="export_whatsapp_sandbox">Export WhatsApp data (zip)</string>
-    <string name="export_whatsapp_sandbox_summary">Pack the clone data to Android/data/blackbox/files/export — leaves the sandbox untouched, stops the WhatsApp clone while packing</string>
+    <string name="export_whatsapp_sandbox_summary">Pack the clone data to Downloads/BlackBoxExport (survives uninstalling the app) — leaves the sandbox untouched, stops the WhatsApp clone while packing</string>
     <string name="import_whatsapp_sandbox">Restore WhatsApp data…</string>
-    <string name="import_whatsapp_sandbox_summary">Restore the newest export from files/export (REPLACES all current clone data — confirm dialog)</string>
+    <string name="import_whatsapp_sandbox_summary">Restore the newest export (from Downloads/BlackBoxExport, older app-folder exports also accepted; REPLACES all current clone data — confirm dialog)</string>
     <string name="gms_manager">GMS Manager</string>
     <string name="jump_gms">Go to Gms Manager</string>
     <string name="enable_gms">Enable Service</string>
