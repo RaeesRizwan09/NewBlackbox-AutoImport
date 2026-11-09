@@ -65,6 +65,14 @@ class SettingFragment : PreferenceFragmentCompat() {
             singleWindowPreference
         }
 
+        invalidHideState {
+            val linkGuidePreference: Preference = (findPreference("link_device_guide")!!)
+            val mLinkDeviceGuide = AppManager.mBlackBoxLoader.linkDeviceGuide()
+            linkGuidePreference.setDefaultValue(mLinkDeviceGuide)
+            linkGuidePreference
+        }
+
+        initMigration()
         initSendLogs()
     }
 
@@ -110,12 +118,60 @@ class SettingFragment : PreferenceFragmentCompat() {
                 "single_window_mode" -> {
                     AppManager.mBlackBoxLoader.invalidSingleWindow(tmpHide)
                 }
+                "link_device_guide" -> {
+                    AppManager.mBlackBoxLoader.invalidLinkDeviceGuide(tmpHide)
+                }
             }
 
             toast(R.string.restart_module)
             return@setOnPreferenceChangeListener true
         }
     }
+    private fun initMigration() {
+        val exportPreference: Preference? = findPreference("export_whatsapp_sandbox")
+        val importPreference: Preference? = findPreference("import_whatsapp_sandbox")
+
+        exportPreference?.setOnPreferenceClickListener {
+            it.isEnabled = false
+            Thread {
+                val file = top.niunaijun.blackboxa.util.MigrationManager.export()
+                activity?.runOnUiThread {
+                    it.isEnabled = true
+                    val msg = if (file != null) {
+                        "Exported to: " + file.absolutePath.removePrefix("/sdcard")
+                    } else {
+                        "Export failed — see logcat tag Migration"
+                    }
+                    android.widget.Toast.makeText(requireContext(), msg, android.widget.Toast.LENGTH_LONG).show()
+                }
+            }.start()
+            true
+        }
+
+        importPreference?.setOnPreferenceClickListener {
+            android.app.AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.import_whatsapp_sandbox)
+                    .setMessage("Replaces ALL current WhatsApp clone data with the newest export zip. The clone closes while restoring. Continue?")
+                    .setPositiveButton("Restore") { _, _ ->
+                        it.isEnabled = false
+                        Thread {
+                            val ok = top.niunaijun.blackboxa.util.MigrationManager.importNewest()
+                            activity?.runOnUiThread {
+                                it.isEnabled = true
+                                android.widget.Toast.makeText(
+                                        requireContext(),
+                                        if (ok) "Restore complete — WhatsApp clone relaunched" else "Restore failed — see logcat tag Migration",
+                                        android.widget.Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        }.start()
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            true
+        }
+    }
+
     private fun initSendLogs() {
         val sendLogsPreference: Preference? = findPreference("send_logs")
         sendLogsPreference?.setOnPreferenceClickListener {

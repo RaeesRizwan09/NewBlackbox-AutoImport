@@ -18,6 +18,7 @@ import android.os.Message;
 import android.os.RemoteException;
 import android.util.Log;
 
+import java.io.File;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -46,7 +47,26 @@ import static android.content.pm.PackageManager.GET_ACTIVITIES;
 
 @SuppressWarnings({"deprecation", "unchecked"})
 public class ActivityStack {
-    public static final String TAG = "ActivityStack";
+    private static final String TAG = "ActivityStack";
+
+    /**
+     * Generic config hook + data-dir freshness gate for companion-first guide.
+     */
+    private String getCompanionRedirectSafely(ActivityInfo activityInfo, int userId) {
+        try {
+            if (activityInfo.name == null) return null;
+            String redirect = BlackBoxCore.get().getCompanionRedirect(activityInfo.packageName, activityInfo.name);
+            if (redirect == null) return null;
+            File dataDir = top.niunaijun.blackbox.core.env.BEnvironment.getDataDir(activityInfo.packageName, userId);
+            File prefs = new File(dataDir, "shared_prefs");
+            if (!prefs.exists()) return redirect;               // fresh clone -> guide allowed
+            File[] files = prefs.listFiles();
+            if (files == null || files.length == 0) return redirect;
+            return null;                                        // account data present -> never hijack
+        } catch (Throwable t) {
+            return null;
+        }
+    }
 
     private final ActivityManager mAms;
     private final Map<Integer, TaskRecord> mTasks = new LinkedHashMap<>();
@@ -104,6 +124,24 @@ public class ActivityStack {
         }
         Log.d(TAG, "startActivityLocked : " + resolveInfo.activityInfo);
         ActivityInfo activityInfo = resolveInfo.activityInfo;
+
+        // Companion-first guide: while the sandboxed clone has no account data,
+        // reroute SMS/phone-number registration starts to the companion (QR)
+        // entry configured by the host app. Cheap no-op when data exists.
+        if (activityInfo != null) {
+            String redirectClass = getCompanionRedirectSafely(activityInfo, userId);
+            if (redirectClass != null) {
+                Log.i(TAG, "companion-first: rerouting " + activityInfo.name + " -> " + redirectClass);
+                intent.setClassName(activityInfo.packageName, redirectClass);
+                intent.removeExtra(Intent.EXTRA_INTENT);
+                ResolveInfo redirected = BPackageManagerService.get().resolveActivity(intent, GET_ACTIVITIES, resolvedType, userId);
+                if (redirected != null && redirected.activityInfo != null) {
+                    activityInfo = redirected.activityInfo;
+                } else {
+                    Log.w(TAG, "companion-first: redirect target unresolvable, keeping original");
+                }
+            }
+        }
 
         ActivityRecord sourceRecord = findActivityRecordByToken(userId, resultTo);
         if (sourceRecord == null) {

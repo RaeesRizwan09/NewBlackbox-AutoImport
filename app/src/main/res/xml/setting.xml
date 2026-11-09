@@ -42,9 +42,24 @@
                 app:summary="@string/auto_launch_whatsapp_summary" />
 
         <SwitchPreferenceCompat
+                app:key="link_device_guide"
+                app:title="@string/link_device_guide"
+                app:summary="@string/link_device_guide_summary" />
+
+        <SwitchPreferenceCompat
                 app:key="single_window_mode"
                 app:title="@string/single_window_mode"
                 app:summary="@string/single_window_mode_summary" />
+
+        <Preference
+                app:key="export_whatsapp_sandbox"
+                app:title="@string/export_whatsapp_sandbox"
+                app:summary="@string/export_whatsapp_sandbox_summary" />
+
+        <Preference
+                app:key="import_whatsapp_sandbox"
+                app:title="@string/import_whatsapp_sandbox"
+                app:summary="@string/import_whatsapp_sandbox_summary" />
 
         <Preference
                 android:key="send_logs"

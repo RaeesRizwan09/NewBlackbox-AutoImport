@@ -144,23 +144,49 @@ public class DaemonService extends Service {
         @Override
         public int onStartCommand(Intent intent, int flags, int startId) {
             Log.i(TAG, "DaemonInnerService -> onStartCommand");
-            
+
             try {
-                
-                NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-                if (nm != null) {
-                    nm.cancel(NOTIFY_ID);
-                    Log.d(TAG, "Notification cancelled successfully");
+                // Keep the persistent foreground notification IN PLACE.
+                // The previous behavior cancelled the notification here, which
+                // on MIUI/Android demoted the daemon back to a background
+                // service and let aggressive battery policy kill it — that is
+                // the main cause of lost push delivery for backgrounded clones.
+                // Same channel/id reuse; a second startForeground is a no-op.
+                if (BuildCompat.isOreo()) {
+                    NotificationChannel channel = new NotificationChannel(
+                            CHANNEL_ID,
+                            CHANNEL_NAME,
+                            NotificationManager.IMPORTANCE_LOW
+                    );
+                    NotificationManager nm = getSystemService(NotificationManager.class);
+                    if (nm != null) nm.createNotificationChannel(channel);
                 }
-                
-                
-                stopSelf();
-                return START_NOT_STICKY;
-                
+
+                Notification notification = createKeepAliveNotification();
+                if (notification != null) {
+                    startForeground(NOTIFY_ID, notification);
+                    Log.d(TAG, "keep-alive foreground notification (re)applied");
+                }
+                return START_STICKY;
             } catch (Exception e) {
                 Log.e(TAG, "Error in DaemonInnerService: " + e.getMessage(), e);
-                stopSelf();
-                return START_NOT_STICKY;
+                return START_STICKY;
+            }
+        }
+
+        private Notification createKeepAliveNotification() {
+            try {
+                return new NotificationCompat.Builder(this, CHANNEL_ID)
+                        .setContentTitle("WhatsApp sandbox")
+                        .setContentText("Linked apps stay reachable in the background")
+                        .setSmallIcon(android.R.drawable.ic_dialog_info)
+                        .setPriority(NotificationCompat.PRIORITY_MIN)
+                        .setOngoing(true)
+                        .setAutoCancel(false)
+                        .build();
+            } catch (Exception e) {
+                Log.e(TAG, "createKeepAliveNotification failed: " + e.getMessage());
+                return null;
             }
         }
 

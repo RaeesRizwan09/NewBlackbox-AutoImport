@@ -31,6 +31,25 @@ class BlackBoxLoader {
 
     private var mSingleWindow by AppSharedPreferenceDelegate(App.getContext(), true)
 
+    private var mLinkDeviceGuide by AppSharedPreferenceDelegate(App.getContext(), true)
+
+    fun linkDeviceGuide(): Boolean {
+        return try {
+            mLinkDeviceGuide
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting linkDeviceGuide: ${e.message}")
+            true
+        }
+    }
+
+    fun invalidLinkDeviceGuide(enable: Boolean) {
+        try {
+            this.mLinkDeviceGuide = enable
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting linkDeviceGuide: ${e.message}")
+        }
+    }
+
     fun singleWindow(): Boolean {
         return try {
             mSingleWindow
@@ -334,6 +353,37 @@ class BlackBoxLoader {
                                     } catch (e: Exception) {
                                         Log.e(TAG, "Error checking singleWindow: ${e.message}")
                                         false
+                                    }
+                                }
+
+                                /**
+                                 * Companion-first guide: map WhatsApp's SMS
+                                 * registration entry activities to the
+                                 * companion-mode (QR) activity. Only honored by
+                                 * the engine while the clone data dir is fresh
+                                 * (no account), so it never hijacks a linked
+                                 * clone. Null disables.
+                                 */
+                                override fun getCompanionRedirect(
+                                        pkg: String,
+                                        activityName: String
+                                ): String? {
+                                    return try {
+                                        if (!mLinkDeviceGuide) {
+                                            return null
+                                        }
+                                        val guards = setOf(
+                                                "com.whatsapp.registration.app.phonenumberentry.RegisterPhone",
+                                                "com.whatsapp.registration.app.verifyphone.VerifyPhoneNumber"
+                                        )
+                                        if (pkg == "com.whatsapp" && activityName in guards) {
+                                            "com.whatsapp.companionmode.registration.ui.RegisterAsCompanionActivity"
+                                        } else {
+                                            null
+                                        }
+                                    } catch (e: Exception) {
+                                        Log.e(TAG, "Error in getCompanionRedirect: ${e.message}")
+                                        null
                                     }
                                 }
 
