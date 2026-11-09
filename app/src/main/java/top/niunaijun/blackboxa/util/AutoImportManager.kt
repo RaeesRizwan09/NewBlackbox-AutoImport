@@ -36,6 +36,31 @@ object AutoImportManager {
     }
 
     /**
+     * Bring the WhatsApp clone to the front right after the engine and home
+     * screen are ready. "Open BlackBox -> land inside WhatsApp".
+     * @return true when a launch intent was fired.
+     */
+    fun launchCloneToFront(userId: Int = 0): Boolean {
+        if (!AppManager.mBlackBoxLoader.autoLaunchWhatsApp()) {
+            return false
+        }
+        val core = BlackBoxCore.get()
+        val target = TARGET_PACKAGES.firstOrNull { runCatching { core.isInstalled(it, userId) }.getOrDefault(false) }
+        if (target == null) {
+            Log.d(TAG, "no WhatsApp clone installed; skipping auto-launch")
+            return false
+        }
+        val launched = try {
+            core.launchApk(target, userId)
+        } catch (t: Throwable) {
+            Log.w(TAG, "auto-launch $target failed", t)
+            false
+        }
+        Log.i(TAG, if (launched) "auto-launch $target OK" else "auto-launch $target returned false")
+        return launched
+    }
+
+    /**
      * @return true when a fresh install/replace was performed.
      */
     fun importIfNeeded(packageName: String, userId: Int = 0): Boolean {

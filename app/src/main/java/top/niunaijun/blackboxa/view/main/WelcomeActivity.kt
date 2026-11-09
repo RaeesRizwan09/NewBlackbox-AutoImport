@@ -12,6 +12,7 @@ class WelcomeActivity : AppCompatActivity() {
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
+        postImport()
         jump()
     }
 
@@ -25,8 +26,21 @@ class WelcomeActivity : AppCompatActivity() {
         } catch (t: Throwable) {
             android.util.Log.w("AutoImportWelcome", "auto-import failed", t)
         }
+        postImport()
         previewInstalledAppList()
         jump()
+    }
+
+    /**
+     * Kick the WhatsApp clone to the front when auto-launch is enabled, so the
+     * user lands inside WhatsApp right after opening BlackBox.
+     */
+    private fun postImport() {
+        try {
+            top.niunaijun.blackboxa.util.AutoImportManager.launchCloneToFront()
+        } catch (t: Throwable) {
+            android.util.Log.w("AutoImportWelcome", "auto-launch failed", t)
+        }
     }
 
     private fun jump() {

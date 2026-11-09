@@ -51,6 +51,13 @@ class SettingFragment : PreferenceFragmentCompat() {
             autoImportPreference
         }
 
+        invalidHideState {
+            val autoLaunchPreference: Preference = (findPreference("auto_launch_whatsapp")!!)
+            val mAutoLaunchWhatsApp = AppManager.mBlackBoxLoader.autoLaunchWhatsApp()
+            autoLaunchPreference.setDefaultValue(mAutoLaunchWhatsApp)
+            autoLaunchPreference
+        }
+
         initSendLogs()
     }
 
@@ -89,6 +96,9 @@ class SettingFragment : PreferenceFragmentCompat() {
                 }
                 "auto_import_whatsapp" -> {
                     AppManager.mBlackBoxLoader.invalidAutoImportWhatsApp(tmpHide)
+                }
+                "auto_launch_whatsapp" -> {
+                    AppManager.mBlackBoxLoader.invalidAutoLaunchWhatsApp(tmpHide)
                 }
             }
 

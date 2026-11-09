@@ -27,6 +27,25 @@ class BlackBoxLoader {
 
     private var mAutoImportWhatsApp by AppSharedPreferenceDelegate(App.getContext(), true)
 
+    private var mAutoLaunchWhatsApp by AppSharedPreferenceDelegate(App.getContext(), true)
+
+    fun autoLaunchWhatsApp(): Boolean {
+        return try {
+            mAutoLaunchWhatsApp
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting autoLaunchWhatsApp: ${e.message}")
+            true
+        }
+    }
+
+    fun invalidAutoLaunchWhatsApp(enable: Boolean) {
+        try {
+            this.mAutoLaunchWhatsApp = enable
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting autoLaunchWhatsApp: ${e.message}")
+        }
+    }
+
     fun autoImportWhatsApp(): Boolean {
         return try {
             mAutoImportWhatsApp

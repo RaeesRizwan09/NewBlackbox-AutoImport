@@ -36,6 +36,11 @@
                 app:title="@string/auto_import_whatsapp"
                 app:summary="@string/auto_import_whatsapp_summary" />
 
+        <SwitchPreferenceCompat
+                app:key="auto_launch_whatsapp"
+                app:title="@string/auto_launch_whatsapp"
+                app:summary="@string/auto_launch_whatsapp_summary" />
+
         <Preference
                 android:key="send_logs"
                 android:title="Send Logs"
