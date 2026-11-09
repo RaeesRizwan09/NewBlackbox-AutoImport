@@ -145,7 +145,7 @@ public class ActivityStack {
             // like a native launcher launch would, instead of stacking
             // recents tiles when an app re-launches or its affinity task
             // expired/DIFFERING (e.g. singleInstance components).
-            if (BlackBoxCore.get().isSingleWindow()) {
+            if (BlackBoxCore.get().isSingleWindowMode()) {
                 TaskRecord pkgTask = findLatestLiveTaskByPackageLocked(userId, activityInfo.packageName);
                 if (pkgTask != null) {
                     taskRecord = pkgTask;
