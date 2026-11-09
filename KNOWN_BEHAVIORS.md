@@ -172,6 +172,28 @@ monitor showing the clone's own QR) is only proven in the *other-device* scans; 
 the companion handshake against the scanned account either way, but a strict same-physical-device
 scan loop was not exercised end-to-end.
 
+## 6c. Full lifecycle VERIFIED: export -> wipe -> import preserves the LINKED session (2026-11-10)
+
+The test that mattered most, executed with a live companion-linked account:
+
+1. Export via Settings → `com.whatsapp-sandbox-20261110-004932.zip`, **94 MB** (msgstore 58 MB +
+   axolotl session keys + provisioning + media), lands in `Download/BlackBoxExport/`.
+2. **Host app UNINSTALLED** (this time by accident — even better: a real-world scenario).
+3. Zip checked right after uninstall: still on /sdcard — the Downloads path is what makes the
+   sequence possible; the legacy app-dir export would have died here.
+4. Fresh install of the same build + grants re-applied (incl. `MANAGE_EXTERNAL_STORAGE`).
+5. Settings → Restore: imported the newest zip, clone relaunched automatically.
+6. Verified: launch goes **straight to the chats screen** (no EULA, no companion QR — the linked
+   session survived, decrypted history intact); two-way messaging confirmed live right after
+   (outgoing `✓✓` blue, incoming rendered); the account marker `companion_registered_0` was
+   regenerated naturally on the first `HomeActivity` creation (it is NOT part of the export —
+   by design, the engine re-arms it live; the clientConfiguration path is likewise regenerated
+   by auto-import).
+
+Meaning: the full state machine is portable. A BlackBox user can move a linked WhatsApp clone
+between wipes, reinstalls, and even devices that side-load the same build, with zero
+re-registration and zero SMS exposure.
+
 ## 7. Re-test checklist (run after major WhatsApp updates)
 
 1. `AutoImport` log shows `up to date` *(or a successful `update X -> Y` B-path re-import)* for `com.whatsapp`.
